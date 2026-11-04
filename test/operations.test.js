@@ -8,6 +8,7 @@ import { WebSocket } from 'ws';
 
 process.env.JWT_SECRET_KEY = 'test-only-operations-key';
 process.env.NODE_ENV = 'test';
+process.env.DEV_LOG_VERIFICATION_CODES = 'false';
 const { createApp, originAllowed } = await import('../app.js');
 const { attachMessageSocket } = await import('../realtime/messageSocket.js');
 const defaults = () => ({ NODE_ENV: 'test', JWT_SECRET_KEY: 'test-only-key' });
@@ -62,6 +63,10 @@ test('production configuration fails closed and never echoes supplied credential
     { LOG_LEVEL: 'debug-with-private-details' },
     { READINESS_TIMEOUT_MS: '-1' },
     { SENDGRID_API_KEY: 'PRIVATE_SENTINEL' },
+    { EMAIL_PROVIDER: 'unknown' },
+    { RESEND_API_KEY: 'PRIVATE_SENTINEL' },
+    { DEV_LOG_VERIFICATION_CODES: 'true' },
+    { DEV_LOG_VERIFICATION_CODES: 'maybe' },
   ]) {
     assert.throws(
       () => parseEnvironment({ ...production(), ...change }),
@@ -79,6 +84,15 @@ test('production configuration fails closed and never echoes supplied credential
   assert.deepEqual(parsed.trustProxy, ['loopback', '192.0.2.0/24']);
   assert.equal(parsed.autoIndex, false);
   assert.equal(parseEnvironment(defaults()).trustProxy, false);
+  assert.equal(parseEnvironment(defaults()).devLogVerificationCodes, false);
+  assert.equal(
+    parseEnvironment({
+      NODE_ENV: 'development',
+      JWT_SECRET_KEY: 'local-key',
+      DEV_LOG_VERIFICATION_CODES: 'true',
+    }).devLogVerificationCodes,
+    true,
+  );
   const nativeOnly = parseEnvironment({
     ...production(),
     CORS_ALLOWED_ORIGINS: 'none',

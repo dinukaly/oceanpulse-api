@@ -109,6 +109,18 @@ export function parseEnvironment(env) {
     invalid('LOG_LEVEL', 'must be silent, error, warn or info');
   const sendgridApiKey = env.SENDGRID_API_KEY || undefined;
   const sendgridFromEmail = env.SENDGRID_FROM_EMAIL || undefined;
+  const emailProvider = env.EMAIL_PROVIDER || 'sendgrid';
+  if (!['sendgrid', 'resend'].includes(emailProvider))
+    invalid('EMAIL_PROVIDER', 'must be sendgrid or resend');
+  const resendApiKey = env.RESEND_API_KEY?.trim() || undefined;
+  const resendFromEmail = env.RESEND_FROM_EMAIL?.trim() || undefined;
+  if (production && Boolean(resendApiKey) !== Boolean(resendFromEmail))
+    invalid('RESEND_API_KEY/RESEND_FROM_EMAIL', 'must be configured together or both omitted');
+  const devLogVerificationCodes = env.DEV_LOG_VERIFICATION_CODES ?? 'false';
+  if (!['true', 'false'].includes(devLogVerificationCodes))
+    invalid('DEV_LOG_VERIFICATION_CODES', 'must be true or false');
+  if (devLogVerificationCodes === 'true' && nodeEnv !== 'development')
+    invalid('DEV_LOG_VERIFICATION_CODES', 'is allowed only in development');
   if (production && Boolean(sendgridApiKey) !== Boolean(sendgridFromEmail))
     invalid(
       'SENDGRID_API_KEY/SENDGRID_FROM_EMAIL',
@@ -126,6 +138,10 @@ export function parseEnvironment(env) {
     logLevel,
     sendgridApiKey,
     sendgridFromEmail,
+    emailProvider,
+    resendApiKey,
+    resendFromEmail,
+    devLogVerificationCodes: devLogVerificationCodes === 'true',
     host,
     port: number(env, 'PORT', 3000, 1, 65535),
     weatherApiKey: env.WEATHER_API_KEY || undefined,
