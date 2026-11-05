@@ -34,6 +34,7 @@ const generateUsername = (firstName, lastName) => {
 
 // Helper to create consistent user response object
 const formatUserResponse = (user) => ({
+  role: user.role ?? 'fisherman',
   userId: user._id,
   username: user.username,
   email: user.email,
@@ -78,6 +79,7 @@ const registerUser = async (req, res, next) => {
       password: hashedPassword,
       boatId,
       isActive: false,
+      role: 'fisherman',
     });
 
     await deliverCode(newUser, 'account');

@@ -17,11 +17,16 @@ export const authenticateAccessToken = async (token) => {
   if (decoded.purpose !== 'access' || !mongoose.isValidObjectId(decoded.userId)) {
     throw new AppError('Invalid token', 401);
   }
-  const user = await User.findById(decoded.userId).select('_id username isActive authVersion');
+  const user = await User.findById(decoded.userId).select('_id username isActive authVersion role');
   if (!user || !user.isActive || decoded.authVersion !== (user.authVersion || 0)) {
     throw new AppError('Account is not active', 401);
   }
-  return { userId: user._id.toString(), username: user.username, expiresAt: decoded.exp };
+  // Legacy accounts/tokens remain fishermen; current database role is authoritative.
+  const role = user.role ?? 'fisherman';
+  if (!['fisherman', 'coastguard', 'admin'].includes(role)) {
+    throw new AppError('Invalid account role', 403);
+  }
+  return { userId: user._id.toString(), username: user.username, role, expiresAt: decoded.exp };
 };
 
 export const authenticateToken = async (req, res, next) => {
@@ -34,9 +39,16 @@ export const authenticateToken = async (req, res, next) => {
 
   try {
     const user = await authenticateAccessToken(token);
-    req.user = { userId: user.userId, username: user.username };
+    req.user = { userId: user.userId, username: user.username, role: user.role };
     next(); 
   } catch (error) {
     next(error); 
   }
+};
+
+export const requireRole = (...allowedRoles) => (req, res, next) => {
+  if (!req.user || !allowedRoles.includes(req.user.role)) {
+    return next(new AppError('Forbidden: Insufficient privileges for emergency operations', 403));
+  }
+  next();
 };

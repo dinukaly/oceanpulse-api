@@ -8,6 +8,7 @@ const events = new Set([
   'server.stopped',
   'server.shutdown_failed',
   'server.shutdown_timeout',
+  'coastguard.station_seeded',
 ]);
 const reasons = new Set(['SIGTERM', 'SIGINT', 'manual', 'startup']);
 const kinds = new Set([
@@ -27,6 +28,10 @@ const settings = new Set([
   'EMAIL_PROVIDER',
   'RESEND_API_KEY/RESEND_FROM_EMAIL',
   'DEV_LOG_VERIFICATION_CODES',
+  'DEV_SEED_COASTGUARD',
+  'COASTGUARD_STATION_EMAIL',
+  'COASTGUARD_STATION_PASSWORD',
+  'COASTGUARD_STATION_CONTACT',
   'HOST',
   'PORT',
   'TRUST_PROXY',
