@@ -20,6 +20,7 @@ export const sosReceipt = (alert, userId, alreadyActive, { includeClosed = false
     responderNotified: false,
     alreadyActive,
     alertStatus: alertStatus(alert),
+    dispatchRecorded: alert.notes?.some((note) => note.action === 'DISPATCH') ?? false,
     acknowledgedAt: alert.acknowledgedAt ? new Date(alert.acknowledgedAt).toISOString() : null,
     handledByName: alert.handledByName || null,
     latestNote: alert.notes && alert.notes.length ? alert.notes[alert.notes.length - 1].message : null,

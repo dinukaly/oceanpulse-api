@@ -369,12 +369,11 @@ const getResponderStats = async (req, res, next) => {
 const cancelActiveAlert = async (req, res, next) => {
   try {
     const userId = actorId(req);
-    const body = jsonObject(req.body || {});
-    const rawId = body.alertId;
-    const alertId = rawId ? objectId(rawId, 'alert ID') : undefined;
-    const message = (body.reason === undefined ? '' : text(body.reason, 'reason', 1000, true)) ||
+    const { alertId: rawId, reason } = jsonObject(req.body);
+    const alertId = objectId(rawId, 'alert ID');
+    const message = (reason === undefined ? '' : text(reason, 'reason', 1000, true)) ||
       'Distress beacon cancelled by vessel operator';
-    const ownerFilter = alertId ? { _id: alertId, userId } : { userId, isHandled: false };
+    const ownerFilter = { _id: alertId, userId };
     const now = new Date();
     const alert = await SosAlert.findOneAndUpdate(
       { ...ownerFilter, isHandled: false, $or: [...statusFilter('ACTIVE').$or, { status: 'ACKNOWLEDGED' }] },
