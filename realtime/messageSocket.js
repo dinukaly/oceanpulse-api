@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { authenticateAccessToken } from '../middleware/auth.js';
-import { subscribeMessages } from './messageEvents.js';
+import { subscribeMessages, subscribeSos } from './messageEvents.js';
 
 export function attachMessageSocket(
   server,
@@ -65,13 +65,13 @@ export function attachMessageSocket(
       ws.send(JSON.stringify(event));
     };
     // Revalidate before each payload so revoked/inactive sessions cannot receive later content.
-    const enqueue = (event) => {
+    const enqueue = (event, canReceive = () => true) => {
       if (++queued > 50) return ws.close(1013, 'Reconnect to recover history');
       sequence = sequence
         .then(async () => {
           if (ws.readyState !== WebSocket.OPEN) return;
-          await authenticate(token);
-          send(event);
+          const current = await authenticate(token);
+          if (canReceive(current)) send(event);
         })
         .catch(fail)
         .finally(() => {
@@ -135,11 +135,21 @@ export function attachMessageSocket(
       if (userIds.has(session.userId)) session.enqueue(event);
     }
   });
+  const unsubscribeSos = subscribeSos((event, targetRole, recipientIds) => {
+    for (const session of sessions.values()) {
+      if (targetRole || recipientIds.has(session.userId)) {
+        session.enqueue(event, (current) =>
+          current.role === targetRole || recipientIds.has(current.userId),
+        );
+      }
+    }
+  });
   let closed = false;
   const close = () => {
     if (closed) return;
     closed = true;
     unsubscribe();
+    unsubscribeSos();
     server.off('upgrade', upgrade);
     for (const ws of wss.clients) ws.terminate();
     wss.close();
