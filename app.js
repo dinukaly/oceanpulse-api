@@ -12,6 +12,7 @@ import { attachMessageSocket } from './realtime/messageSocket.js';
 import { createLogger } from './utils/logger.js';
 import { requestLog } from './middleware/requestLog.js';
 import { createHealth } from './services/health.js';
+import { seedStation } from './services/seedStation.js';
 
 // Routes
 import userRoute from './routes/UserRoute.js';
@@ -148,6 +149,7 @@ export async function startServer({
       Message.createIndexes(),
     ]);
 
+    await seedStation({ settings, logger });
     health.state.initialized = true;
     server = createServer(createApp({ settings, logger, health }));
     sockets = attachMessageSocket(server, {

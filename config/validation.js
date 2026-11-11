@@ -85,6 +85,24 @@ export function parseEnvironment(env) {
   if (!['development', 'test', 'production'].includes(nodeEnv))
     invalid('NODE_ENV', 'must be development, test or production');
   const production = nodeEnv === 'production';
+  const seedEnabled = env.DEV_SEED_COASTGUARD ?? 'false';
+  if (!['true', 'false'].includes(seedEnabled))
+    invalid('DEV_SEED_COASTGUARD', 'must be true or false');
+  let stationSeed;
+  if (seedEnabled === 'true') {
+    if (nodeEnv !== 'development')
+      invalid('DEV_SEED_COASTGUARD', 'is allowed only in development');
+    const email = env.COASTGUARD_STATION_EMAIL?.trim().toLowerCase();
+    const password = env.COASTGUARD_STATION_PASSWORD;
+    const contact = env.COASTGUARD_STATION_CONTACT?.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      invalid('COASTGUARD_STATION_EMAIL', 'must be a valid email');
+    if (!password || password.length < 16 || Buffer.byteLength(password, 'utf8') > 72 ||
+        !/[A-Za-z]/.test(password) || !/\d/.test(password))
+      invalid('COASTGUARD_STATION_PASSWORD', 'must contain 16 to 72 bytes, a letter and a number');
+    if (!contact) invalid('COASTGUARD_STATION_CONTACT', 'is required');
+    stationSeed = { email, password, contact };
+  }
   const jwtSecret = env.JWT_SECRET_KEY;
   if (!jwtSecret?.trim()) invalid('JWT_SECRET_KEY', 'is required');
   if (production && Buffer.byteLength(jwtSecret, 'utf8') < 32)
@@ -131,6 +149,7 @@ export function parseEnvironment(env) {
     invalid('HOST', 'must be a bind IP address or localhost');
   return {
     nodeEnv,
+    stationSeed,
     jwtSecret,
     mongoUri,
     corsOrigins,

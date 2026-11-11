@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
 
 export const generateAccessToken = (user) => jwt.sign(
-  { userId: user._id, purpose: 'access', authVersion: user.authVersion || 0 },
+  { userId: user._id, role: user.role ?? 'fisherman', purpose: 'access', authVersion: user.authVersion || 0 },
   config.jwtSecret,
   { expiresIn: '7d' }
 );

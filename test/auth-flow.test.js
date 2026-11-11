@@ -6,6 +6,8 @@ process.env.JWT_SECRET_KEY = 'test-only-signing-key';
 process.env.WEATHER_API_KEY = 'test-only-weather-key';
 process.env.SENDGRID_API_KEY = 'test-only-sendgrid-key';
 process.env.SENDGRID_FROM_EMAIL = 'test@example.com';
+process.env.EMAIL_PROVIDER = 'sendgrid';
+process.env.DEV_LOG_VERIFICATION_CODES = 'false';
 
 const [{ default: User }, { default: sgMail }, { default: userRoute }, { errorHandler }, verification] = await Promise.all([
   import('../model/UserSchema.js'), import('@sendgrid/mail'),
@@ -71,14 +73,16 @@ after(async () => {
 
 test('verification and reset codes are emailed, limited, and invalidate old sessions', async () => {
   const identity = { firstName: 'Test', lastName: 'Fisher', email: 'fisher@example.com', contact: '+94771234567', password: 'Password123', boatId: '' };
-  const registered = await request('/users/register', { method: 'POST', body: identity });
+  const registered = await request('/users/register', { method: 'POST', body: { ...identity, role: 'coastguard' } });
   assert.equal(registered.status, 201);
+  assert.equal(registered.body.data.user.role, 'fisherman');
   assert.equal(registered.body.data.token, undefined);
   assert.equal(registered.body.data.otp, undefined);
   assert.equal(emails.length, 1);
   const accountCode = /code is (\d{6})/.exec(emails[0].text)?.[1];
   assert.ok(accountCode);
   const user = users.get(identity.email);
+  assert.equal(user.role, 'fisherman');
   assert.notEqual(user.verificationCodeHash, accountCode);
   assert.equal(user.otp, undefined);
 
